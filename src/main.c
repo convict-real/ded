@@ -283,8 +283,10 @@ int main(int argc, char **argv)
                     }
                     break;
 
-                    case SDLK_F5: {
-                        simple_renderer_reload_shaders(&sr);
+                    case SDLK_r: {
+ 		        if (event.key.keysym.mod & KMOD_CTRL) {
+			    simple_renderer_reload_shaders(&sr);
+			}
                     }
                     break;
 
