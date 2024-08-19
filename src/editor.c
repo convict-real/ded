@@ -157,12 +157,37 @@ void editor_move_word_right(Editor *e)
     }
 }
 
-void editor_insert_char(Editor *e, char x)
+void editor_indent(Editor *e, char x, size_t index)
 {
-    editor_insert_buf(e, &x, 1);
+    for (size_t i = 0; i < 4; ++i) {
+    	editor_insert_buf(e, &x, 1, index);
+    }
 }
 
-void editor_insert_buf(Editor *e, char *buf, size_t buf_len)
+void editor_unindent(Editor *e, size_t index)
+{
+    if (e->cursor < index) return;
+
+    size_t count = 0;
+
+    for (size_t i = 0; i < index; ++i) {
+        if (e->data.items[i] == ' ') {
+            count++;
+
+            if (count == index) {
+                editor_remove_buf(e, index, i - index + 1);
+                return;
+            }
+        } else return;
+    }
+}
+
+void editor_insert_char(Editor *e, char x)
+{
+    editor_insert_buf(e, &x, 1, e->cursor);
+}
+
+void editor_insert_buf(Editor *e, char *buf, size_t buf_len, size_t index)
 {
     if (e->searching) {
         sb_append_buf(&e->search, buf, buf_len);
@@ -181,17 +206,31 @@ void editor_insert_buf(Editor *e, char *buf, size_t buf_len)
         }
 
         for (size_t i = 0; i < buf_len; ++i) {
-            da_append(&e->data, '\0');
+	    da_append(&e->data, '\0');
         }
+
         memmove(
-            &e->data.items[e->cursor + buf_len],
-            &e->data.items[e->cursor],
-            e->data.count - e->cursor - buf_len
+            &e->data.items[index + buf_len],
+            &e->data.items[index],
+            e->data.count - index - buf_len
         );
-        memcpy(&e->data.items[e->cursor], buf, buf_len);
+        memcpy(&e->data.items[index], buf, buf_len);
         e->cursor += buf_len;
         editor_retokenize(e);
     }
+}
+
+void editor_remove_buf(Editor *e, size_t buf_len, size_t index)
+{
+    memmove(&e->data.items[index], 
+	    &e->data.items[index + buf_len], 
+	    e->data.count - index - buf_len
+    );
+    
+    e->data.count -= buf_len;
+    e->cursor -= buf_len;
+    
+    editor_retokenize(e);
 }
 
 void editor_retokenize(Editor *e)
@@ -272,19 +311,15 @@ void editor_render(SDL_Window *window, Free_Glyph_Atlas *atlas, Simple_Renderer 
             for (size_t row = 0; row < editor->lines.count; ++row) {
                 size_t select_begin_chr = editor->select_begin;
                 size_t select_end_chr = editor->cursor;
+
                 if (select_begin_chr > select_end_chr) {
                     SWAP(size_t, select_begin_chr, select_end_chr);
                 }
 
                 Line line_chr = editor->lines.items[row];
 
-                if (select_begin_chr < line_chr.begin) {
-                    select_begin_chr = line_chr.begin;
-                }
-
-                if (select_end_chr > line_chr.end) {
-                    select_end_chr = line_chr.end;
-                }
+                if (select_begin_chr < line_chr.begin) select_begin_chr = line_chr.begin;
+                if (select_end_chr > line_chr.end) select_end_chr = line_chr.end;
 
                 if (select_begin_chr <= select_end_chr) {
                     Vec2f select_begin_scr = vec2f(0, -((float)row + CURSOR_OFFSET) * FREE_GLYPH_FONT_SIZE);
@@ -302,6 +337,7 @@ void editor_render(SDL_Window *window, Free_Glyph_Atlas *atlas, Simple_Renderer 
                 }
             }
         }
+
         simple_renderer_flush(sr);
     }
 
@@ -383,11 +419,9 @@ void editor_render(SDL_Window *window, Free_Glyph_Atlas *atlas, Simple_Renderer 
 
     // Update camera
     {
-        if (max_line_len > 1000.0f) {
-            max_line_len = 1000.0f;
-        }
+        if (max_line_len > 1000.0f) max_line_len = 1000.0f;
 
-        float target_scale = w/3/(max_line_len*0.75); // TODO: division by 0
+        float target_scale = max_line_len > 0.f ? w/3/(max_line_len*0.75) : w/3/sr->camera_scale;
 
         Vec2f target = cursor_pos;
         float offset = 0.0f;
@@ -448,7 +482,7 @@ void editor_clipboard_paste(Editor *e)
     char *text = SDL_GetClipboardText();
     size_t text_len = strlen(text);
     if (text_len > 0) {
-        editor_insert_buf(e, text, text_len);
+        editor_insert_buf(e, text, text_len, e->cursor);
     } else {
         fprintf(stderr, "ERROR: SDL ERROR: %s\n", SDL_GetError());
     }

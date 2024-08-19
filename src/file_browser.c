@@ -172,11 +172,9 @@ void fb_render(const File_Browser *fb, SDL_Window *window, Free_Glyph_Atlas *atl
 
     // Update camera
     {
-        if (max_line_len > 1000.0f) {
-            max_line_len = 1000.0f;
-        }
+        if (max_line_len > 1000.0f) max_line_len = 1000.0f;
 
-        float target_scale = w/3/(max_line_len*0.75); // TODO: division by 0
+        float target_scale = max_line_len > 0.f ? w/3/(max_line_len*0.75) : w/3/sr->camera_scale;
 
         Vec2f target = cursor_pos;
         float offset = 0.0f;

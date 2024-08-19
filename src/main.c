@@ -174,8 +174,10 @@ int main(int argc, char **argv)
             case SDL_KEYDOWN: {
                 if (file_browser) {
                     switch (event.key.keysym.sym) {
-                    case SDLK_F3: {
-                        file_browser = false;
+                    case SDLK_d: {
+		        if (event.key.keysym.mod & KMOD_CTRL) {
+			    file_browser = false;
+			}
                     }
                     break;
 
@@ -259,21 +261,25 @@ int main(int argc, char **argv)
                     }
                     break;
 
-                    case SDLK_F2: {
-                        if (editor.file_path.count > 0) {
-                            err = editor_save(&editor);
-                            if (err != 0) {
-                                flash_error("Could not save currently edited file: %s", strerror(err));
-                            }
-                        } else {
-                            // TODO: ask the user for the path to save to in this situation
-                            flash_error("Nowhere to save the text");
-                        }
+                    case SDLK_s: {
+		          if (event.key.keysym.mod & KMOD_CTRL) {
+		  	    if (editor.file_path.count > 0) {
+                              err = editor_save(&editor);
+                              if (err != 0) {
+			        flash_error("Could not save currently edited file: %s", strerror(err));
+                              }
+			    } else {
+                              // TODO: ask the user for the path to save to in this situation
+                              flash_error("Nowhere to save the text");
+			    }
+			}
                     }
                     break;
 
-                    case SDLK_F3: {
-                        file_browser = true;
+                    case SDLK_d: {
+		        if (event.key.keysym.mod & KMOD_CTRL) {
+			    file_browser = true;
+			}
                     }
                     break;
 
@@ -321,16 +327,17 @@ int main(int argc, char **argv)
                     break;
 
                     case SDLK_TAB: {
-                        // TODO: indent on Tab instead of just inserting 4 spaces at the cursor
-                        // That is insert the spaces at the beginning of the line. Shift+TAB should
-                        // do unindent, that is remove 4 spaces from the beginning of the line.
                         // TODO: customizable indentation style
                         // - tabs/spaces
                         // - tab width
                         // - etc.
-                        for (size_t i = 0; i < 4; ++i) {
-                            editor_insert_char(&editor, ' ');
-                        }
+
+			if (event.key.keysym.mod & KMOD_SHIFT) {
+			    editor_unindent(&editor, 4);
+			}
+			else {
+			    editor_indent(&editor, ' ', 0);
+			}
                     }
                     break;
 

@@ -69,8 +69,11 @@ void editor_move_to_line_end(Editor *e);
 void editor_move_paragraph_up(Editor *e);
 void editor_move_paragraph_down(Editor *e);
 
+void editor_indent(Editor *e, char x, size_t index);
+void editor_unindent(Editor *e, size_t index);
 void editor_insert_char(Editor *e, char x);
-void editor_insert_buf(Editor *e, char *buf, size_t buf_len);
+void editor_insert_buf(Editor *e, char *buf, size_t buf_len, size_t index);
+void editor_remove_buf(Editor *e, size_t buf_len, size_t index);
 void editor_retokenize(Editor *e);
 void editor_render(SDL_Window *window, Free_Glyph_Atlas *atlas, Simple_Renderer *sr, Editor *editor);
 void editor_update_selection(Editor *e, bool shift);
